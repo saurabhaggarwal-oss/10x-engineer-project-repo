@@ -128,52 +128,68 @@ class TestPrompts:
         # Newest (Second) should be first
         assert prompts[0]["title"] == "Second"  # Will fail until Bug #3 fixed
 
+    def test_patch_prompt(self, client: TestClient, sample_prompt_data):
+        # Step 1: Create a new prompt to test with
+        response = client.post("/prompts", json=sample_prompt_data)
+        assert response.status_code == 201
+        created_prompt = response.json()
+
+        # Step 2: Perform the PATCH request to update the title
+        patch_data = {"title": "Updated Title"}
+        patch_response = client.patch(f"/prompts/{created_prompt['id']}", json=patch_data)
+        assert patch_response.status_code == 200
+        updated_prompt = patch_response.json()
+
+        # Step 3: Validate the response reflects updated title and other fields are unchanged
+        assert updated_prompt["title"] == "Updated Title"
+        assert updated_prompt["content"] == sample_prompt_data["content"]
+        assert updated_prompt["description"] == sample_prompt_data["description"]
+
+        # Step 4: Perform a GET request to ensure persistence
+        get_response = client.get(f"/prompts/{created_prompt['id']}")
+        retrieved_prompt = get_response.json()
+        assert retrieved_prompt == updated_prompt
+
 
 class TestCollections:
     """Tests for collection endpoints."""
-    
+
     def test_create_collection(self, client: TestClient, sample_collection_data):
         response = client.post("/collections", json=sample_collection_data)
         assert response.status_code == 201
         data = response.json()
         assert data["name"] == sample_collection_data["name"]
         assert "id" in data
-    
+
     def test_list_collections(self, client: TestClient, sample_collection_data):
         client.post("/collections", json=sample_collection_data)
-        
+
         response = client.get("/collections")
         assert response.status_code == 200
         data = response.json()
         assert len(data["collections"]) == 1
-    
+
     def test_get_collection_not_found(self, client: TestClient):
         response = client.get("/collections/nonexistent-id")
         assert response.status_code == 404
-    
+
     def test_delete_collection_with_prompts(self, client: TestClient, sample_collection_data, sample_prompt_data):
-        """Test deleting a collection that has prompts.
-        
-        NOTE: Bug #4 - prompts become orphaned after collection deletion.
-        This test documents the current (buggy) behavior.
-        After fixing, update the test to verify correct behavior.
-        """
         # Create collection
         col_response = client.post("/collections", json=sample_collection_data)
         collection_id = col_response.json()["id"]
-        
+
         # Create prompt in collection
         prompt_data = {**sample_prompt_data, "collection_id": collection_id}
         prompt_response = client.post("/prompts", json=prompt_data)
         prompt_id = prompt_response.json()["id"]
-        
+
         # Delete collection
         client.delete(f"/collections/{collection_id}")
-        
+
         # The prompt still exists but has invalid collection_id
         # This is Bug #4 - should be handled properly
         prompts = client.get("/prompts").json()["prompts"]
         if prompts:
             # Prompt exists with orphaned collection_id
-            assert prompts[0]["collection_id"] == collection_id
+            assert prompts[0]["collection_id"] is None
             # After fix, collection_id should be None or prompt should be deleted
