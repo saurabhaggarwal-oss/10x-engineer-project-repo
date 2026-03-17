@@ -236,3 +236,113 @@ class TestStorageEdgeCases:
         prompts = store.get_all_prompts()
         assert len(prompts) == 1
         assert prompts[0].title == "After"
+
+
+# ============== Collection Update & Version Operations ==============
+
+
+class TestCollectionUpdateAndVersions:
+    """Tests for collection update, delete with versions, and version retrieval."""
+
+    def test_update_collection(self, store, make_collection):
+        col = make_collection(name="Original")
+        store.create_collection(col)
+        col.name = "Updated"
+        col.description = "New desc"
+        result = store.update_collection(col.id, col)
+        assert result is not None
+        assert result.name == "Updated"
+        assert result.current_version == 2
+
+    def test_update_collection_not_found(self, store, make_collection):
+        col = make_collection()
+        result = store.update_collection("nonexistent", col)
+        assert result is None
+
+    def test_delete_collection_cleans_versions(self, store, make_collection):
+        col = make_collection()
+        store.create_collection(col)
+        assert store.delete_collection(col.id) is True
+        assert store.get_collection_versions(col.id) == []
+
+    def test_get_collection_versions(self, store, make_collection):
+        col = make_collection()
+        store.create_collection(col)
+        versions = store.get_collection_versions(col.id)
+        assert len(versions) == 1
+        assert versions[0].version == 1
+
+    def test_get_collection_versions_after_update(self, store, make_collection):
+        col = make_collection(name="V1")
+        store.create_collection(col)
+        col.name = "V2"
+        store.update_collection(col.id, col)
+        versions = store.get_collection_versions(col.id)
+        assert len(versions) == 2
+        assert versions[1].version == 2
+
+    def test_get_collection_versions_nonexistent(self, store):
+        assert store.get_collection_versions("nonexistent") == []
+
+    def test_get_collection_version(self, store, make_collection):
+        col = make_collection(name="Test")
+        store.create_collection(col)
+        v = store.get_collection_version(col.id, 1)
+        assert v is not None
+        assert v.version == 1
+        assert v.name == "Test"
+
+    def test_get_collection_version_not_found(self, store, make_collection):
+        col = make_collection()
+        store.create_collection(col)
+        assert store.get_collection_version(col.id, 999) is None
+
+    def test_get_collection_version_nonexistent_collection(self, store):
+        assert store.get_collection_version("nonexistent", 1) is None
+
+
+# ============== Prompt Version Operations ==============
+
+
+class TestPromptVersions:
+    """Tests for prompt version retrieval methods."""
+
+    def test_get_prompt_versions(self, store, make_prompt):
+        prompt = make_prompt()
+        store.create_prompt(prompt)
+        versions = store.get_prompt_versions(prompt.id)
+        assert len(versions) == 1
+        assert versions[0].version == 1
+
+    def test_get_prompt_versions_after_update(self, store, make_prompt):
+        prompt = make_prompt(title="V1")
+        store.create_prompt(prompt)
+        updated = Prompt(id=prompt.id, title="V2", content="C2", created_at=prompt.created_at)
+        store.update_prompt(prompt.id, updated)
+        versions = store.get_prompt_versions(prompt.id)
+        assert len(versions) == 2
+
+    def test_get_prompt_versions_nonexistent(self, store):
+        assert store.get_prompt_versions("nonexistent") == []
+
+    def test_get_prompt_version(self, store, make_prompt):
+        prompt = make_prompt(title="Test")
+        store.create_prompt(prompt)
+        v = store.get_prompt_version(prompt.id, 1)
+        assert v is not None
+        assert v.version == 1
+        assert v.title == "Test"
+
+    def test_get_prompt_version_not_found(self, store, make_prompt):
+        prompt = make_prompt()
+        store.create_prompt(prompt)
+        assert store.get_prompt_version(prompt.id, 999) is None
+
+    def test_get_prompt_version_nonexistent_prompt(self, store):
+        assert store.get_prompt_version("nonexistent", 1) is None
+
+    def test_delete_prompt_cleans_versions(self, store, make_prompt):
+        prompt = make_prompt()
+        store.create_prompt(prompt)
+        store.delete_prompt(prompt.id)
+        assert store.get_prompt_versions(prompt.id) == []

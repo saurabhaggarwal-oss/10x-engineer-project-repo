@@ -1,7 +1,9 @@
-import Button from '../shared/Button';
+import { useTheme } from '../../context/ThemeContext';
 import styles from './Header.module.css';
 
-export default function Header({ onNewPrompt, onToggleSidebar }) {
+export default function Header({ onToggleSidebar }) {
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <header className={styles.header}>
       <div className={styles.left}>
@@ -15,7 +17,14 @@ export default function Header({ onNewPrompt, onToggleSidebar }) {
         </button>
         <span className={styles.logo}>PromptLab</span>
       </div>
-      <Button onClick={onNewPrompt}>+ New Prompt</Button>
+      <button
+        className={styles.themeBtn}
+        onClick={toggleTheme}
+        aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+        type="button"
+      >
+        {theme === 'light' ? '🌙' : '☀️'}
+      </button>
     </header>
   );
 }

@@ -116,61 +116,41 @@
   line-height: 1.5;
 }
 
-/* Meta grid */
-.metaGrid {
+/* Stats row */
+.statsRow {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
   padding-top: 1.25rem;
   border-top: 1px solid var(--border-color);
 }
 
-.metaItem {
+.statCard {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.6rem;
+  background: var(--bg-surface-alt);
+  border-radius: 8px;
 }
 
-.metaLabel {
+.statValue {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.statLabel {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
-  font-weight: 600;
-}
-
-.metaValue {
-  font-size: 0.85rem;
-  color: var(--text-primary);
-}
-
-.badge {
-  display: inline-block;
-  background: var(--accent-bg);
-  color: var(--accent);
-  padding: 0.15rem 0.6rem;
-  border-radius: 999px;
-  font-size: 0.78rem;
   font-weight: 500;
-  width: fit-content;
 }
 
-.tagList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-}
-
-.tag {
-  background: var(--btn-secondary-bg);
-  color: var(--text-primary);
-  padding: 0.1rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-}
-
-/* Content card */
-.contentCard {
+/* Description card */
+.descCard {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: 12px;
@@ -199,11 +179,64 @@
   color: var(--text-secondary);
 }
 
-.contentBody {
+.descBody {
   padding: 1.25rem;
-  white-space: pre-wrap;
   font-size: 0.9rem;
-  line-height: 1.7;
-  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  line-height: 1.6;
   color: var(--text-primary);
+}
+
+/* Prompts link card */
+.promptsLink {
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.promptsLink:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px var(--card-shadow);
+}
+
+.promptsLink:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.promptsLinkInner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.promptsLinkIcon {
+  font-size: 1.25rem;
+  color: var(--accent);
+  width: 36px;
+  height: 36px;
+  background: var(--accent-bg);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.promptsLinkTitle {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.promptsLinkSub {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.1rem;
 }

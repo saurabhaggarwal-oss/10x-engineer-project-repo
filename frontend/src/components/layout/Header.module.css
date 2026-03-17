@@ -4,8 +4,8 @@
   justify-content: space-between;
   height: 56px;
   padding: 0 1.25rem;
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
@@ -15,24 +15,40 @@
   gap: 0.75rem;
 }
 
+.right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .logo {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #6366f1;
+  color: var(--accent);
 }
 
 .menuBtn {
-  display: none;
   background: none;
   border: none;
   font-size: 1.25rem;
   cursor: pointer;
   padding: 0.25rem;
-  color: #213547;
+  color: var(--text-primary);
+  display: block;
 }
 
-@media (max-width: 768px) {
-  .menuBtn {
-    display: block;
-  }
+.themeBtn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: border-color 0.15s;
 }
+
+.themeBtn:hover {
+  border-color: var(--accent);
+}
+

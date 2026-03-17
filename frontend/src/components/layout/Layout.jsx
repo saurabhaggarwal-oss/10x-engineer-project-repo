@@ -2,23 +2,30 @@ import { useState } from 'react';
 import Header from './Header';
 import styles from './Layout.module.css';
 
-export default function Layout({ children, sidebar, onNewPrompt }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+export default function Layout({ children, sidebar }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <div className={styles.layout}>
       <Header
-        onNewPrompt={onNewPrompt}
-        onToggleSidebar={() => setSidebarOpen((v) => !v)}
+        onToggleSidebar={() => {
+          // mobile: toggle overlay, desktop: collapse
+          if (window.innerWidth <= 768) {
+            setMobileOpen((v) => !v);
+          } else {
+            setCollapsed((v) => !v);
+          }
+        }}
       />
       <div className={styles.body}>
-        <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ''}`}>
+        <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''} ${mobileOpen ? styles.mobileOpen : ''}`}>
           {sidebar}
         </aside>
-        {sidebarOpen && (
+        {mobileOpen && (
           <div
             className={styles.overlay}
-            onClick={() => setSidebarOpen(false)}
+            onClick={() => setMobileOpen(false)}
             aria-hidden="true"
           />
         )}

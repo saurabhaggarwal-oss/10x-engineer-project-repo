@@ -27,3 +27,11 @@ export function patchPrompt(id, data) {
 export function deletePrompt(id) {
   return del(`/prompts/${id}`);
 }
+
+export function getPromptVersions(id) {
+  return get(`/prompts/${id}/versions`);
+}
+
+export function getPromptVersion(id, version) {
+  return get(`/prompts/${id}/versions/${version}`);
+}

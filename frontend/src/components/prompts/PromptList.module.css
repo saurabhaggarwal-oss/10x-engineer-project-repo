@@ -15,7 +15,7 @@
 .emptyState {
   text-align: center;
   padding: 4rem 1rem;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .emptyIcon {

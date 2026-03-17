@@ -1,90 +1,29 @@
-import { useState } from 'react';
-import LoadingSpinner from '../shared/LoadingSpinner';
 import styles from './Sidebar.module.css';
 
-export default function Sidebar({ collections, activeCollectionId, onSelectCollection, onNewCollection, onDeleteCollection, loading }) {
-  const [collectionsOpen, setCollectionsOpen] = useState(true);
-
-  const handleDelete = (e, id) => {
-    e.stopPropagation();
-    if (window.confirm('Delete this collection? Prompts in it will be unlinked.')) {
-      onDeleteCollection(id);
-    }
-  };
-
-  const handleNewClick = (e) => {
-    e.stopPropagation();
-    onNewCollection();
-  };
-
+export default function Sidebar({ activePage, onNavigate }) {
   return (
-    <nav className={styles.sidebar} aria-label="Navigation">
+    <nav className={styles.sidebar} aria-label="Main navigation">
       <ul className={styles.list}>
-        {/* Collections - collapsible section */}
         <li>
           <button
-            className={styles.sectionHeader}
-            onClick={() => setCollectionsOpen((v) => !v)}
-            aria-expanded={collectionsOpen}
+            className={`${styles.item} ${activePage === 'collections' ? styles.active : ''}`}
+            onClick={() => onNavigate('collections')}
+            aria-current={activePage === 'collections' ? 'page' : undefined}
+            title="Collections"
           >
-            <span className={styles.sectionLeft}>
-              <span className={`${styles.chevron} ${collectionsOpen ? styles.chevronOpen : ''}`}>›</span>
-              <span>Collections</span>
-            </span>
-            <span
-              className={styles.addBtn}
-              role="button"
-              tabIndex={0}
-              aria-label="New collection"
-              onClick={handleNewClick}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleNewClick(e); }}
-            >
-              +
-            </span>
+            <span className={styles.icon}>📁</span>
+            <span className={styles.label}>Collections</span>
           </button>
-
-          {collectionsOpen && (
-            loading ? <LoadingSpinner /> : (
-              <ul className={styles.subList}>
-                {collections.length === 0 && (
-                  <li className={styles.emptyMsg}>No collections yet</li>
-                )}
-                {collections.map((c) => (
-                  <li key={c.id}>
-                    <button
-                      className={`${styles.subItem} ${activeCollectionId === c.id ? styles.active : ''}`}
-                      onClick={() => onSelectCollection(c.id)}
-                      aria-current={activeCollectionId === c.id ? 'true' : undefined}
-                    >
-                      <span className={styles.itemName}>{c.name}</span>
-                      <span
-                        className={styles.deleteBtn}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`Delete ${c.name}`}
-                        onClick={(e) => handleDelete(e, c.id)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') handleDelete(e, c.id); }}
-                      >
-                        ×
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )
-          )}
         </li>
-
-        {/* Prompts - below collections, same level */}
         <li>
           <button
-            className={`${styles.sectionHeader} ${activeCollectionId === null ? styles.activeSection : ''}`}
-            onClick={() => onSelectCollection(null)}
-            aria-current={activeCollectionId === null ? 'true' : undefined}
+            className={`${styles.item} ${activePage === 'prompts' ? styles.active : ''}`}
+            onClick={() => onNavigate('prompts')}
+            aria-current={activePage === 'prompts' ? 'page' : undefined}
+            title="Prompts"
           >
-            <span className={styles.sectionLeft}>
-              <span>Prompts</span>
-            </span>
+            <span className={styles.icon}>📝</span>
+            <span className={styles.label}>Prompts</span>
           </button>
         </li>
       </ul>

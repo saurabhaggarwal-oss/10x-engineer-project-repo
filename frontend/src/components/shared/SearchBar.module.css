@@ -14,16 +14,18 @@
 .input {
   width: 100%;
   padding: 0.5rem 2rem 0.5rem 2.25rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 0.875rem;
   outline: none;
   transition: border-color 0.15s;
+  background: var(--bg-surface);
+  color: var(--text-primary);
 }
 
 .input:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-focus-ring);
 }
 
 .clear {
@@ -32,12 +34,12 @@
   background: none;
   border: none;
   font-size: 1.1rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   cursor: pointer;
   padding: 0.1rem 0.25rem;
   line-height: 1;
 }
 
 .clear:hover {
-  color: #213547;
+  color: var(--text-primary);
 }

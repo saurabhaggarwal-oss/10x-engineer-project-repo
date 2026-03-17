@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getPrompts, getPrompt, createPrompt, updatePrompt, deletePrompt } from './api/prompts';
-import { getCollections, createCollection, deleteCollection } from './api/collections';
+import { getCollections, getCollection, createCollection, updateCollection, deleteCollection } from './api/collections';
 import Layout from './components/layout/Layout';
 import Sidebar from './components/layout/Sidebar';
 import SearchBar from './components/shared/SearchBar';
 import Modal from './components/shared/Modal';
+import Button from './components/shared/Button';
 import PromptList from './components/prompts/PromptList';
 import PromptDetail from './components/prompts/PromptDetail';
 import PromptForm from './components/prompts/PromptForm';
+import CollectionList from './components/collections/CollectionList';
+import CollectionDetail from './components/collections/CollectionDetail';
 import CollectionForm from './components/collections/CollectionForm';
 import styles from './App.module.css';
 
@@ -17,19 +20,26 @@ export default function App() {
   const [promptsLoading, setPromptsLoading] = useState(true);
   const [promptsError, setPromptsError] = useState(null);
   const [collectionsLoading, setCollectionsLoading] = useState(true);
+  const [collectionsError, setCollectionsError] = useState(null);
   const [selectedPrompt, setSelectedPrompt] = useState(null);
+  const [selectedCollection, setSelectedCollection] = useState(null);
   const [activeCollectionId, setActiveCollectionId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [view, setView] = useState('list');
-  const [showCollectionForm, setShowCollectionForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [collectionSearch, setCollectionSearch] = useState('');
+  const [allPrompts, setAllPrompts] = useState([]);
 
-  const fetchPrompts = useCallback(async () => {
+  // pages: prompts, collections, prompt-detail, prompt-create, prompt-edit,
+  //        collection-detail, collection-edit, collection-prompts
+  const [page, setPage] = useState('prompts');
+  const [showCollectionForm, setShowCollectionForm] = useState(false);
+
+  const fetchPrompts = useCallback(async (collectionId) => {
     setPromptsLoading(true);
     setPromptsError(null);
     try {
       const params = {};
-      if (activeCollectionId) params.collection_id = activeCollectionId;
+      if (collectionId) params.collection_id = collectionId;
       if (searchQuery) params.search = searchQuery;
       const data = await getPrompts(params);
       setPrompts(data.prompts);
@@ -38,28 +48,66 @@ export default function App() {
     } finally {
       setPromptsLoading(false);
     }
-  }, [activeCollectionId, searchQuery]);
+  }, [searchQuery]);
 
   const fetchCollections = useCallback(async () => {
     setCollectionsLoading(true);
+    setCollectionsError(null);
     try {
       const data = await getCollections();
       setCollections(data.collections);
-    } catch {
-      /* sidebar will just be empty */
+    } catch (err) {
+      setCollectionsError(err.message);
     } finally {
       setCollectionsLoading(false);
     }
   }, []);
 
+  const fetchAllPrompts = useCallback(async () => {
+    try {
+      const data = await getPrompts({});
+      setAllPrompts(data.prompts);
+    } catch { /* ignore */ }
+  }, []);
+
   useEffect(() => { fetchCollections(); }, [fetchCollections]);
-  useEffect(() => { fetchPrompts(); }, [fetchPrompts]);
+  useEffect(() => { fetchAllPrompts(); }, [fetchAllPrompts]);
+
+  useEffect(() => {
+    if (page === 'prompts') fetchPrompts(null);
+    if (page === 'collection-prompts' && activeCollectionId) fetchPrompts(activeCollectionId);
+  }, [page, activeCollectionId, fetchPrompts]);
+
+  const handleNavigate = (target) => {
+    setSearchQuery('');
+    setCollectionSearch('');
+    setSelectedPrompt(null);
+    setSelectedCollection(null);
+    setActiveCollectionId(null);
+    setPage(target);
+  };
+
+  const handleSelectCollection = async (id) => {
+    try {
+      const data = await getCollection(id);
+      setSelectedCollection(data);
+      setActiveCollectionId(id);
+      setPage('collection-detail');
+    } catch (err) {
+      setCollectionsError(err.message);
+    }
+  };
+
+  const handleViewCollectionPrompts = () => {
+    setPage('collection-prompts');
+    fetchPrompts(activeCollectionId);
+  };
 
   const handleSelectPrompt = async (id) => {
     try {
       const data = await getPrompt(id);
       setSelectedPrompt(data);
-      setView('detail');
+      setPage('prompt-detail');
     } catch (err) {
       setPromptsError(err.message);
     }
@@ -69,8 +117,9 @@ export default function App() {
     setSaving(true);
     try {
       await createPrompt(formData);
-      setView('list');
-      fetchPrompts();
+      setPage(activeCollectionId ? 'collection-prompts' : 'prompts');
+      fetchPrompts(activeCollectionId);
+      fetchAllPrompts();
     } catch (err) {
       setPromptsError(err.message);
     } finally {
@@ -81,10 +130,11 @@ export default function App() {
   const handleUpdatePrompt = async (formData) => {
     setSaving(true);
     try {
-      await updatePrompt(selectedPrompt.id, formData);
-      setView('list');
-      setSelectedPrompt(null);
-      fetchPrompts();
+      const updated = await updatePrompt(selectedPrompt.id, formData);
+      setSelectedPrompt(updated);
+      setPage('prompt-detail');
+      fetchPrompts(activeCollectionId);
+      fetchAllPrompts();
     } catch (err) {
       setPromptsError(err.message);
     } finally {
@@ -95,9 +145,10 @@ export default function App() {
   const handleDeletePrompt = async () => {
     try {
       await deletePrompt(selectedPrompt.id);
-      setView('list');
+      setPage(activeCollectionId ? 'collection-prompts' : 'prompts');
       setSelectedPrompt(null);
-      fetchPrompts();
+      fetchPrompts(activeCollectionId);
+      fetchAllPrompts();
     } catch (err) {
       setPromptsError(err.message);
     }
@@ -110,7 +161,21 @@ export default function App() {
       setShowCollectionForm(false);
       fetchCollections();
     } catch (err) {
-      setPromptsError(err.message);
+      setCollectionsError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateCollection = async (formData) => {
+    setSaving(true);
+    try {
+      const updated = await updateCollection(selectedCollection.id, formData);
+      setSelectedCollection(updated);
+      setPage('collection-detail');
+      fetchCollections();
+    } catch (err) {
+      setCollectionsError(err.message);
     } finally {
       setSaving(false);
     }
@@ -119,32 +184,91 @@ export default function App() {
   const handleDeleteCollection = async (id) => {
     try {
       await deleteCollection(id);
-      if (activeCollectionId === id) setActiveCollectionId(null);
+      if (page === 'collection-detail') {
+        setSelectedCollection(null);
+        setActiveCollectionId(null);
+        setPage('collections');
+      }
       fetchCollections();
-      fetchPrompts();
+      fetchAllPrompts();
     } catch (err) {
-      setPromptsError(err.message);
+      setCollectionsError(err.message);
     }
   };
 
   const collectionName = (id) => collections.find((c) => c.id === id)?.name;
-  const activeCollectionName = activeCollectionId ? collectionName(activeCollectionId) : null;
+
+  const promptCountMap = allPrompts.reduce((acc, p) => {
+    if (p.collection_id) acc[p.collection_id] = (acc[p.collection_id] || 0) + 1;
+    return acc;
+  }, {});
+
+  const filteredCollections = collectionSearch
+    ? collections.filter((c) => c.name.toLowerCase().includes(collectionSearch.toLowerCase()))
+    : collections;
+
+  const sidebarActivePage = ['collections', 'collection-detail', 'collection-edit', 'collection-prompts'].includes(page)
+    ? 'collections' : 'prompts';
 
   const sidebar = (
-    <Sidebar
-      collections={collections}
-      activeCollectionId={activeCollectionId}
-      onSelectCollection={(id) => { setActiveCollectionId(id); setView('list'); setSelectedPrompt(null); }}
-      onNewCollection={() => setShowCollectionForm(true)}
-      onDeleteCollection={handleDeleteCollection}
-      loading={collectionsLoading}
-    />
+    <Sidebar activePage={sidebarActivePage} onNavigate={handleNavigate} />
   );
 
   return (
-    <Layout sidebar={sidebar} onNewPrompt={() => { setSelectedPrompt(null); setView('create'); }}>
-      {view === 'list' && (
+    <Layout sidebar={sidebar}>
+      {/* Collections list */}
+      {page === 'collections' && (
         <>
+          <div className={styles.pageHeader}>
+            <h1 className={styles.pageTitle}>Collections</h1>
+            <Button onClick={() => setShowCollectionForm(true)}>+ New Collection</Button>
+          </div>
+          <div className={styles.searchRow}>
+            <SearchBar value={collectionSearch} onChange={setCollectionSearch} />
+          </div>
+          <CollectionList
+            collections={filteredCollections}
+            promptCountMap={promptCountMap}
+            onSelect={handleSelectCollection}
+            onDelete={handleDeleteCollection}
+            loading={collectionsLoading}
+            error={collectionsError}
+          />
+        </>
+      )}
+
+      {/* Collection detail */}
+      {page === 'collection-detail' && selectedCollection && (
+        <CollectionDetail
+          collection={selectedCollection}
+          promptCount={promptCountMap[selectedCollection.id] || 0}
+          onEdit={() => setPage('collection-edit')}
+          onDelete={() => handleDeleteCollection(selectedCollection.id)}
+          onViewPrompts={handleViewCollectionPrompts}
+          onBack={() => setPage('collections')}
+        />
+      )}
+
+      {/* Collection edit */}
+      {page === 'collection-edit' && selectedCollection && (
+        <CollectionForm
+          collection={selectedCollection}
+          onSubmit={handleUpdateCollection}
+          onCancel={() => setPage('collection-detail')}
+          saving={saving}
+        />
+      )}
+
+      {/* Collection prompts */}
+      {page === 'collection-prompts' && (
+        <>
+          <div className={styles.pageHeader}>
+            <div>
+              <button className={styles.backLink} onClick={() => setPage('collection-detail')}>← {collectionName(activeCollectionId) || 'Collection'}</button>
+              <h1 className={styles.pageTitle}>Prompts</h1>
+            </div>
+            <Button onClick={() => setPage('prompt-create')}>+ New Prompt</Button>
+          </div>
           <div className={styles.searchRow}>
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
           </div>
@@ -154,43 +278,70 @@ export default function App() {
             onSelectPrompt={handleSelectPrompt}
             loading={promptsLoading}
             error={promptsError}
-            onRetry={fetchPrompts}
+            onRetry={() => fetchPrompts(activeCollectionId)}
+            emptyMessage="No prompts in this collection yet."
+          />
+        </>
+      )}
+
+      {/* Prompts list */}
+      {page === 'prompts' && (
+        <>
+          <div className={styles.pageHeader}>
+            <h1 className={styles.pageTitle}>Prompts</h1>
+            <Button onClick={() => setPage('prompt-create')}>+ New Prompt</Button>
+          </div>
+          <div className={styles.searchRow}>
+            <SearchBar value={searchQuery} onChange={setSearchQuery} />
+          </div>
+          <PromptList
+            prompts={prompts}
+            collections={collections}
+            onSelectPrompt={handleSelectPrompt}
+            loading={promptsLoading}
+            error={promptsError}
+            onRetry={() => fetchPrompts(null)}
             emptyMessage={
-              activeCollectionName
-                ? `No prompts in "${activeCollectionName}" yet.`
-                : searchQuery
-                  ? `No prompts matching "${searchQuery}".`
-                  : 'No prompts yet. Create your first prompt!'
+              searchQuery
+                ? `No prompts matching "${searchQuery}".`
+                : 'No prompts yet. Create your first prompt!'
             }
           />
         </>
       )}
-      {view === 'detail' && selectedPrompt && (
+
+      {/* Prompt detail */}
+      {page === 'prompt-detail' && selectedPrompt && (
         <PromptDetail
           prompt={selectedPrompt}
           collectionName={collectionName(selectedPrompt.collection_id)}
-          onEdit={() => setView('edit')}
+          onEdit={() => setPage('prompt-edit')}
           onDelete={handleDeletePrompt}
-          onBack={() => { setView('list'); setSelectedPrompt(null); }}
+          onBack={() => setPage(activeCollectionId ? 'collection-prompts' : 'prompts')}
         />
       )}
-      {view === 'create' && (
+
+      {/* Create prompt */}
+      {page === 'prompt-create' && (
         <PromptForm
           collections={collections}
           onSubmit={handleCreatePrompt}
-          onCancel={() => setView('list')}
+          onCancel={() => setPage(activeCollectionId ? 'collection-prompts' : 'prompts')}
           saving={saving}
         />
       )}
-      {view === 'edit' && selectedPrompt && (
+
+      {/* Edit prompt */}
+      {page === 'prompt-edit' && selectedPrompt && (
         <PromptForm
           prompt={selectedPrompt}
           collections={collections}
           onSubmit={handleUpdatePrompt}
-          onCancel={() => setView('detail')}
+          onCancel={() => setPage('prompt-detail')}
           saving={saving}
         />
       )}
+
       <Modal isOpen={showCollectionForm} onClose={() => setShowCollectionForm(false)} title="New Collection">
         <CollectionForm
           onSubmit={handleCreateCollection}

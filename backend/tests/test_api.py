@@ -424,3 +424,113 @@ class TestCollectionDeletionOrphansPrompts:
         client.delete(f"/collections/{col['id']}")
         response = client.get(f"/prompts/{prompt['id']}")
         assert response.status_code == 200
+
+
+class TestPromptVersionEndpoints:
+    """Tests for prompt version history endpoints."""
+
+    def test_list_prompt_versions(self, client: TestClient, sample_prompt_data):
+        created = client.post("/prompts", json=sample_prompt_data).json()
+        response = client.get(f"/prompts/{created['id']}/versions")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert data["versions"][0]["version"] == 1
+        assert data["versions"][0]["title"] == sample_prompt_data["title"]
+
+    def test_list_prompt_versions_after_update(self, client: TestClient, sample_prompt_data):
+        created = client.post("/prompts", json=sample_prompt_data).json()
+        client.put(f"/prompts/{created['id']}", json={"title": "V2", "content": "C2"})
+        data = client.get(f"/prompts/{created['id']}/versions").json()
+        assert data["total"] == 2
+
+    def test_list_prompt_versions_nonexistent_404(self, client: TestClient):
+        response = client.get("/prompts/nonexistent/versions")
+        assert response.status_code == 404
+
+    def test_get_prompt_version(self, client: TestClient, sample_prompt_data):
+        created = client.post("/prompts", json=sample_prompt_data).json()
+        response = client.get(f"/prompts/{created['id']}/versions/1")
+        assert response.status_code == 200
+        assert response.json()["version"] == 1
+        assert response.json()["title"] == sample_prompt_data["title"]
+
+    def test_get_prompt_version_not_found(self, client: TestClient, sample_prompt_data):
+        created = client.post("/prompts", json=sample_prompt_data).json()
+        response = client.get(f"/prompts/{created['id']}/versions/999")
+        assert response.status_code == 404
+        assert "version not found" in response.json()["detail"].lower()
+
+    def test_get_prompt_version_nonexistent_prompt_404(self, client: TestClient):
+        response = client.get("/prompts/nonexistent/versions/1")
+        assert response.status_code == 404
+
+
+class TestCollectionUpdateEndpoint:
+    """Tests for PUT /collections/{id} endpoint."""
+
+    def test_update_collection(self, client: TestClient, sample_collection_data):
+        created = client.post("/collections", json=sample_collection_data).json()
+        response = client.put(
+            f"/collections/{created['id']}",
+            json={"name": "Updated Name", "description": "Updated desc"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["name"] == "Updated Name"
+        assert data["description"] == "Updated desc"
+        assert data["id"] == created["id"]
+
+    def test_update_collection_nonexistent_404(self, client: TestClient):
+        response = client.put(
+            "/collections/nonexistent",
+            json={"name": "X", "description": "Y"},
+        )
+        assert response.status_code == 404
+
+    def test_update_collection_increments_version(self, client: TestClient, sample_collection_data):
+        created = client.post("/collections", json=sample_collection_data).json()
+        updated = client.put(
+            f"/collections/{created['id']}",
+            json={"name": "V2", "description": "D2"},
+        ).json()
+        assert updated["current_version"] == 2
+
+
+class TestCollectionVersionEndpoints:
+    """Tests for collection version history endpoints."""
+
+    def test_list_collection_versions(self, client: TestClient, sample_collection_data):
+        created = client.post("/collections", json=sample_collection_data).json()
+        response = client.get(f"/collections/{created['id']}/versions")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert data["versions"][0]["version"] == 1
+
+    def test_list_collection_versions_after_update(self, client: TestClient, sample_collection_data):
+        created = client.post("/collections", json=sample_collection_data).json()
+        client.put(f"/collections/{created['id']}", json={"name": "V2"})
+        data = client.get(f"/collections/{created['id']}/versions").json()
+        assert data["total"] == 2
+
+    def test_list_collection_versions_nonexistent_404(self, client: TestClient):
+        response = client.get("/collections/nonexistent/versions")
+        assert response.status_code == 404
+
+    def test_get_collection_version(self, client: TestClient, sample_collection_data):
+        created = client.post("/collections", json=sample_collection_data).json()
+        response = client.get(f"/collections/{created['id']}/versions/1")
+        assert response.status_code == 200
+        assert response.json()["version"] == 1
+        assert response.json()["name"] == sample_collection_data["name"]
+
+    def test_get_collection_version_not_found(self, client: TestClient, sample_collection_data):
+        created = client.post("/collections", json=sample_collection_data).json()
+        response = client.get(f"/collections/{created['id']}/versions/999")
+        assert response.status_code == 404
+        assert "version not found" in response.json()["detail"].lower()
+
+    def test_get_collection_version_nonexistent_collection_404(self, client: TestClient):
+        response = client.get("/collections/nonexistent/versions/1")
+        assert response.status_code == 404

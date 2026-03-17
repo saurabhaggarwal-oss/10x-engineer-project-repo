@@ -1,13 +1,13 @@
 .container {
   padding: 1rem;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
   border-radius: 6px;
   text-align: center;
 }
 
 .message {
-  color: #dc2626;
+  color: var(--danger);
   margin-bottom: 0.5rem;
   font-size: 0.875rem;
 }

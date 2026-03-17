@@ -2,10 +2,12 @@ import { useState } from 'react';
 import Button from '../shared/Button';
 import styles from './CollectionForm.module.css';
 
-export default function CollectionForm({ onSubmit, onCancel, saving }) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+export default function CollectionForm({ collection, onSubmit, onCancel, saving }) {
+  const [name, setName] = useState(collection?.name || '');
+  const [description, setDescription] = useState(collection?.description || '');
   const [error, setError] = useState('');
+
+  const isEdit = Boolean(collection);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -16,6 +18,7 @@ export default function CollectionForm({ onSubmit, onCancel, saving }) {
 
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
+      {isEdit && <h2 className={styles.heading}>Edit Collection</h2>}
       {error && <p className={styles.error} role="alert">{error}</p>}
       <div className={styles.field}>
         <label htmlFor="col-name">Name <span className={styles.required}>*</span></label>
@@ -32,7 +35,7 @@ export default function CollectionForm({ onSubmit, onCancel, saving }) {
         <textarea id="col-desc" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
       </div>
       <div className={styles.actions}>
-        <Button type="submit" disabled={saving}>{saving ? 'Creating...' : 'Create'}</Button>
+        <Button type="submit" disabled={saving}>{saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create'}</Button>
         <Button variant="secondary" onClick={onCancel} disabled={saving}>Cancel</Button>
       </div>
     </form>

@@ -1,3 +1,63 @@
+:root {
+  --bg-primary: #fafafa;
+  --bg-surface: #fff;
+  --bg-surface-alt: #f8fafc;
+  --bg-sidebar: #f1f5f9;
+  --text-primary: #213547;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --text-sidebar: #334155;
+  --text-sidebar-muted: #94a3b8;
+  --border-color: #e2e8f0;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-bg: #eef2ff;
+  --accent-focus-ring: rgba(99, 102, 241, 0.1);
+  --btn-secondary-bg: #e2e8f0;
+  --btn-secondary-hover: #cbd5e1;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
+  --selection-bg: #c7d2fe;
+  --selection-text: #1e1b4b;
+  --overlay-bg: rgba(0, 0, 0, 0.4);
+  --card-shadow: rgba(0, 0, 0, 0.08);
+  --sidebar-divider: #e2e8f0;
+  --sidebar-hover: rgba(0, 0, 0, 0.04);
+  --spinner-track: #e2e8f0;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #0f172a;
+  --bg-surface: #1e293b;
+  --bg-surface-alt: #1a2332;
+  --bg-sidebar: #0f172a;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-sidebar: #cbd5e1;
+  --text-sidebar-muted: #64748b;
+  --border-color: #334155;
+  --accent: #818cf8;
+  --accent-hover: #6366f1;
+  --accent-bg: rgba(99, 102, 241, 0.15);
+  --accent-focus-ring: rgba(129, 140, 248, 0.2);
+  --btn-secondary-bg: #334155;
+  --btn-secondary-hover: #475569;
+  --danger: #f87171;
+  --danger-hover: #ef4444;
+  --danger-bg: rgba(239, 68, 68, 0.1);
+  --danger-border: rgba(239, 68, 68, 0.3);
+  --selection-bg: #4338ca;
+  --selection-text: #e0e7ff;
+  --overlay-bg: rgba(0, 0, 0, 0.6);
+  --card-shadow: rgba(0, 0, 0, 0.3);
+  --sidebar-divider: rgba(255, 255, 255, 0.06);
+  --sidebar-hover: rgba(255, 255, 255, 0.05);
+  --spinner-track: #334155;
+}
+
 *,
 *::before,
 *::after {
@@ -15,19 +75,19 @@ body {
     Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: #213547;
-  background-color: #fafafa;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
   line-height: 1.5;
 }
 
 :focus-visible {
-  outline: 2px solid #6366f1;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
 ::selection {
-  background: #c7d2fe;
-  color: #1e1b4b;
+  background: var(--selection-bg);
+  color: var(--selection-text);
 }
 
 input, textarea, select, button {
