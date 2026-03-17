@@ -1,95 +1,132 @@
-"""Utility functions for PromptLab"""
+"""Pydantic models for PromptLab"""
 
-import re
-from typing import List
+from datetime import datetime
+from typing import List, Optional
+from uuid import uuid4
 
-from app.models import Prompt
-
-def sort_prompts_by_date(prompts: List[Prompt], descending: bool = True) -> List[Prompt]:
-    """Sort a list of prompts by their creation date.
-
-    Args:
-        prompts (List[Prompt]): The list of prompt objects to sort.
-        descending (bool): If True, sort from newest to oldest. If False, sort from oldest to newest.
-
-    Returns:
-        List[Prompt]: The sorted list of prompts.
-    """
-    return sorted(prompts, key=lambda p: p.created_at, reverse=descending)
-
-def filter_prompts_by_collection(prompts: List[Prompt], collection_id: str) -> List[Prompt]:
-    """Filter prompts based on a specific collection ID.
-
-    Args:
-        prompts (List[Prompt]): The list of prompt objects to filter.
-        collection_id (str): The ID of the collection to filter prompts by.
-
-    Returns:
-        List[Prompt]: A list of prompts that belong to the specified collection.
-    """
-    return [p for p in prompts if p.collection_id == collection_id]
-
-def search_prompts(prompts: List[Prompt], query: str) -> List[Prompt]:
-    """Search prompts by title or description using a query string.
-
-    Args:
-        prompts (List[Prompt]): The list of prompt objects to search.
-        query (str): The search query string.
-
-    Returns:
-        List[Prompt]: A list of prompts that match the query in their title or description.
-    """
-    query_lower = query.lower()
-    return [
-        p for p in prompts
-        if query_lower in p.title.lower() or
-           (p.description and query_lower in p.description.lower())
-    ]
-
-def filter_prompts_by_tags(prompts: List[Prompt], tags: List[str]) -> List[Prompt]:
-    """Filter prompts that contain ALL specified tags (case-insensitive).
-
-    Args:
-        prompts: The list of prompts to filter.
-        tags: Tags to match. Returns prompts containing all of them.
-
-    Returns:
-        Filtered list of prompts. If tags is empty, returns all prompts.
-    """
-    if not tags:
-        return prompts
-    tags_lower = {t.lower() for t in tags}
-    return [
-        p for p in prompts
-        if tags_lower <= {t.lower() for t in p.tags}
-    ]
+from pydantic import BaseModel, ConfigDict, Field
 
 
-def validate_prompt_content(content: str) -> bool:
-    """Validate the content of a prompt to ensure it meets criteria.
+def generate_id() -> str:
+    """Generate a unique identifier using UUID4."""
+    return str(uuid4())
 
-    A valid prompt should not be empty, should not be just whitespace,
-    and should be at least 10 characters long.
 
-    Args:
-        content (str): The content of the prompt to validate.
+def get_current_time() -> datetime:
+    """Get the current UTC time."""
+    return datetime.utcnow()
 
-    Returns:
-        bool: True if the prompt content is valid, otherwise False.
-    """
-    if not content or not content.strip():
-        return False
-    return len(content.strip()) >= 10
 
-def extract_variables(content: str) -> List[str]:
-    """Extract template variables from prompt content.
+# ============== Version Models ==============
 
-    Variables are defined in the format {{variable_name}}.
 
-    Args:
-        content (str): The content from which to extract variables.
+class PromptVersion(BaseModel):
+    """Snapshot of a prompt at a point in time."""
+    version: int = Field(description="Version number.")
+    title: str = Field(description="Title at this version.")
+    content: str = Field(description="Content at this version.")
+    description: Optional[str] = Field(None, description="Description at this version.")
+    collection_id: Optional[str] = Field(None, description="Collection ID at this version.")
+    tags: List[str] = Field(default_factory=list, description="Tags at this version.")
+    created_at: datetime = Field(default_factory=get_current_time, description="When this version was created.")
 
-    Returns:
-        List[str]: A list of variable names found within the content.
-    """
-    return re.findall(r'\{\{(\w+)\}\}', content)
+
+class CollectionVersion(BaseModel):
+    """Snapshot of a collection at a point in time."""
+    version: int = Field(description="Version number.")
+    name: str = Field(description="Name at this version.")
+    description: Optional[str] = Field(None, description="Description at this version.")
+    created_at: datetime = Field(default_factory=get_current_time, description="When this version was created.")
+
+
+# ============== Prompt Models ==============
+
+
+class PromptBase(BaseModel):
+    """Base model for prompts containing common fields."""
+    title: str = Field(..., min_length=1, max_length=200, description="Title of the prompt.")
+    content: str = Field(..., min_length=1, description="Content or body of the prompt.")
+    description: Optional[str] = Field(None, max_length=500, description="Optional description of the prompt.")
+    collection_id: Optional[str] = Field(None, description="Identifier of the collection to which the prompt belongs.")
+    tags: List[str] = Field(default_factory=list, description="Tags associated with the prompt.")
+
+
+class PromptCreate(PromptBase):
+    """Model for creating a new prompt."""
+    pass
+
+
+class PromptUpdate(PromptBase):
+    """Model for updating an existing prompt."""
+    pass
+
+
+class Prompt(PromptBase):
+    """Model representing a prompt including its metadata."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str = Field(default_factory=generate_id, description="Unique identifier for the prompt.")
+    current_version: int = Field(default=1, description="Current version number.")
+    created_at: datetime = Field(default_factory=get_current_time, description="Timestamp when the prompt was created.")
+    updated_at: datetime = Field(default_factory=get_current_time, description="Timestamp when the prompt was last updated.")
+
+
+# ============== Collection Models ==============
+
+
+class CollectionBase(BaseModel):
+    """Base model for collections containing common fields."""
+    name: str = Field(..., min_length=1, max_length=100, description="Name of the collection.")
+    description: Optional[str] = Field(None, max_length=500, description="Optional description of the collection.")
+
+
+class CollectionCreate(CollectionBase):
+    """Model for creating a new collection."""
+    pass
+
+
+class CollectionUpdate(CollectionBase):
+    """Model for updating a collection."""
+    pass
+
+
+class Collection(CollectionBase):
+    """Model representing a collection including its metadata."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str = Field(default_factory=generate_id, description="Unique identifier for the collection.")
+    current_version: int = Field(default=1, description="Current version number.")
+    created_at: datetime = Field(default_factory=get_current_time, description="Timestamp when the collection was created.")
+
+
+# ============== Response Models ==============
+
+
+class PromptList(BaseModel):
+    """Response model for a list of prompts."""
+    prompts: List[Prompt] = Field(description="List of prompt objects.")
+    total: int = Field(description="Total number of prompts available.")
+
+
+class CollectionList(BaseModel):
+    """Response model for a list of collections."""
+    collections: List[Collection] = Field(description="List of collection objects.")
+    total: int = Field(description="Total number of collections available.")
+
+
+class PromptVersionList(BaseModel):
+    """Response model for prompt version history."""
+    versions: List[PromptVersion] = Field(description="List of prompt versions.")
+    total: int = Field(description="Total number of versions.")
+
+
+class CollectionVersionList(BaseModel):
+    """Response model for collection version history."""
+    versions: List[CollectionVersion] = Field(description="List of collection versions.")
+    total: int = Field(description="Total number of versions.")
+
+
+class HealthResponse(BaseModel):
+    """Model for health check response."""
+    status: str = Field(description="Current status of the application.")
+    version: str = Field(description="Current version of the application.")
