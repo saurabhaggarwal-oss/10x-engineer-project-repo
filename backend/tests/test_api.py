@@ -200,6 +200,8 @@ class TestPromptEndpointsErrors:
         response = client.delete(f"/prompts/{created['id']}")
         assert response.status_code == 404
 
+class TestCollectionEndpointsHappyPath:
+    """Happy-path tests for collection endpoints."""
 
 class TestPromptEndpointsEdgeCases:
     """Edge-case tests: empty strings, special characters, boundary values."""
