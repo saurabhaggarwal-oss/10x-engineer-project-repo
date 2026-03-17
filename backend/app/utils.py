@@ -44,6 +44,25 @@ def search_prompts(prompts: List[Prompt], query: str) -> List[Prompt]:
            (p.description and query_lower in p.description.lower())
     ]
 
+def filter_prompts_by_tags(prompts: List[Prompt], tags: List[str]) -> List[Prompt]:
+    """Filter prompts that contain ALL specified tags (case-insensitive).
+
+    Args:
+        prompts: The list of prompts to filter.
+        tags: Tags to match. Returns prompts containing all of them.
+
+    Returns:
+        Filtered list of prompts. If tags is empty, returns all prompts.
+    """
+    if not tags:
+        return prompts
+    tags_lower = {t.lower() for t in tags}
+    return [
+        p for p in prompts
+        if tags_lower <= {t.lower() for t in p.tags}
+    ]
+
+
 def validate_prompt_content(content: str) -> bool:
     """Validate the content of a prompt to ensure it meets criteria.
 

@@ -1,89 +1,95 @@
-"""Pydantic models for PromptLab"""
+"""Utility functions for PromptLab"""
 
-from datetime import datetime
-from typing import Optional, List
-from pydantic import BaseModel, Field
-from uuid import uuid4
+import re
+from typing import List
 
+from app.models import Prompt
 
-def generate_id() -> str:
-    """Generate a unique identifier using UUID4.
+def sort_prompts_by_date(prompts: List[Prompt], descending: bool = True) -> List[Prompt]:
+    """Sort a list of prompts by their creation date.
 
-    Returns:
-        str: The generated unique identifier as a string.
-    """
-    return str(uuid4())
-
-
-def get_current_time() -> datetime:
-    """Get the current UTC time.
+    Args:
+        prompts (List[Prompt]): The list of prompt objects to sort.
+        descending (bool): If True, sort from newest to oldest. If False, sort from oldest to newest.
 
     Returns:
-        datetime: The current UTC datetime.
+        List[Prompt]: The sorted list of prompts.
     """
-    return datetime.utcnow()
+    return sorted(prompts, key=lambda p: p.created_at, reverse=descending)
 
-# ============== Prompt Models ==============
+def filter_prompts_by_collection(prompts: List[Prompt], collection_id: str) -> List[Prompt]:
+    """Filter prompts based on a specific collection ID.
 
-class PromptBase(BaseModel):
-    """Base model for prompts containing common fields."""
-    title: str = Field(..., min_length=1, max_length=200, description="Title of the prompt.")
-    content: str = Field(..., min_length=1, description="Content or body of the prompt.")
-    description: Optional[str] = Field(None, max_length=500, description="Optional description of the prompt.")
-    collection_id: Optional[str] = Field(None, description="Identifier of the collection to which the prompt belongs.")
+    Args:
+        prompts (List[Prompt]): The list of prompt objects to filter.
+        collection_id (str): The ID of the collection to filter prompts by.
 
-class PromptCreate(PromptBase):
-    """Model for creating a new prompt, inherits from PromptBase."""
-    pass
+    Returns:
+        List[Prompt]: A list of prompts that belong to the specified collection.
+    """
+    return [p for p in prompts if p.collection_id == collection_id]
 
-class PromptUpdate(PromptBase):
-    """Model for updating an existing prompt, inherits from PromptBase."""
-    pass
+def search_prompts(prompts: List[Prompt], query: str) -> List[Prompt]:
+    """Search prompts by title or description using a query string.
 
-class Prompt(PromptBase):
-    """Model representing a prompt including its metadata."""
-    id: str = Field(default_factory=generate_id, description="Unique identifier for the prompt.")
-    created_at: datetime = Field(default_factory=get_current_time, description="Timestamp when the prompt was created.")
-    updated_at: datetime = Field(default_factory=get_current_time, description="Timestamp when the prompt was last updated.")
+    Args:
+        prompts (List[Prompt]): The list of prompt objects to search.
+        query (str): The search query string.
 
-    class Config:
-        """Configuration for the Prompt model to ensure attributes are accessible from ORM models."""
-        from_attributes = True
+    Returns:
+        List[Prompt]: A list of prompts that match the query in their title or description.
+    """
+    query_lower = query.lower()
+    return [
+        p for p in prompts
+        if query_lower in p.title.lower() or
+           (p.description and query_lower in p.description.lower())
+    ]
 
-# ============== Collection Models ==============
+def filter_prompts_by_tags(prompts: List[Prompt], tags: List[str]) -> List[Prompt]:
+    """Filter prompts that contain ALL specified tags (case-insensitive).
 
-class CollectionBase(BaseModel):
-    """Base model for collections containing common fields."""
-    name: str = Field(..., min_length=1, max_length=100, description="Name of the collection.")
-    description: Optional[str] = Field(None, max_length=500, description="Optional description of the collection.")
+    Args:
+        prompts: The list of prompts to filter.
+        tags: Tags to match. Returns prompts containing all of them.
 
-class CollectionCreate(CollectionBase):
-    """Model for creating a new collection, inherits from CollectionBase."""
-    pass
+    Returns:
+        Filtered list of prompts. If tags is empty, returns all prompts.
+    """
+    if not tags:
+        return prompts
+    tags_lower = {t.lower() for t in tags}
+    return [
+        p for p in prompts
+        if tags_lower <= {t.lower() for t in p.tags}
+    ]
 
-class Collection(CollectionBase):
-    """Model representing a collection including its metadata."""
-    id: str = Field(default_factory=generate_id, description="Unique identifier for the collection.")
-    created_at: datetime = Field(default_factory=get_current_time, description="Timestamp when the collection was created.")
 
-    class Config:
-        """Configuration for the Collection model to ensure attributes are accessible from ORM models."""
-        from_attributes = True
+def validate_prompt_content(content: str) -> bool:
+    """Validate the content of a prompt to ensure it meets criteria.
 
-# ============== Response Models ==============
+    A valid prompt should not be empty, should not be just whitespace,
+    and should be at least 10 characters long.
 
-class PromptList(BaseModel):
-    """Response model for a list of prompts, along with the total count."""
-    prompts: List[Prompt] = Field(description="List of prompt objects.")
-    total: int = Field(description="Total number of prompts available.")
+    Args:
+        content (str): The content of the prompt to validate.
 
-class CollectionList(BaseModel):
-    """Response model for a list of collections, along with the total count."""
-    collections: List[Collection] = Field(description="List of collection objects.")
-    total: int = Field(description="Total number of collections available.")
+    Returns:
+        bool: True if the prompt content is valid, otherwise False.
+    """
+    if not content or not content.strip():
+        return False
+    return len(content.strip()) >= 10
 
-class HealthResponse(BaseModel):
-    """Model for health check response including status and version of the API."""
-    status: str = Field(description="Current status of the application.")
-    version: str = Field(description="Current version of the application.")
+def extract_variables(content: str) -> List[str]:
+    """Extract template variables from prompt content.
 
+    Variables are defined in the format {{variable_name}}.
+
+    Args:
+        content (str): The content from which to extract variables.
+
+    Returns:
+        List[str]: A list of variable names found within the content.
+    """
+    return re.findall(r'\{\{(\w+)\}\}', content)
